@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+  
+<mapper namespace="green.mapper.MemberMapper">
+<!-- namespace : 자바클래스에서 mapper 를 찾는 경로
+				  다른 mapper와 중복되지 않도록 네임스페이스 기재 
+
+** Mybatis
+	=> PreparedStatement 처리가 기본
+	=> 자동으로 DB close() 해줌
+	
+** #{id}
+ => parameter로 전달된 vo 의 id 라는 컬럼의 value 가 전달됨
+ => getID() or setID("..") : getter 또는 setter 에 오타가 없어야함 
+ => Map 타입의 경우 키값이 id 인 값을 찾음   
+ 
+** ${id} : id 라는 필드 표현 
+ 
+** SQL 쿼리문에서 비교연산자 사용하는 경우  
+	XML에서는  <,>등 비교연산자의 경우 XML규칙상 에러 나기때문에,
+	이기호를 연산자로 인식하도록 하기 위해서는 SQL문을 CDATA로 묶어 주어야 한다.
+	<![CDATA[ SELECT * FROM table WHERE id < 1 ]]> 
+	
+** 반복문 사용 : checkList 
+=> select * from member where lev in ('A','B','C') order by id asc (추천)
+   select * from member where lev='A' OR lev='B' OR lev='C' order by id asc (비추)
+
+=> Java for 구문 : for ( String city:arrCity ) { ..... }
+
+=> collection : list 또는 array Type 의 매개변수 (vo에 정의된 변수 사용)	
+   item : collection 의  데이터 를 1건씩 전달 받으며 위의 구문을 완성함. 	
+   index : 필요시 사용,  0 부터 시작 (0,1,2...) 
+   <foreach ...index="index"..>   
+              ...... "${index}" : index 값 사용하기 
+                      사용하지 않는경우 아래처럼 표시해도 되고, 생략해도됨.
+   <foreach .... index="" open="(" close=")" separator=",">  	
+
+=> 반복문 적용 : MemberMapper.xml , BoardMapper.xml  
+-->
+ 	
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 ** PageList 2. searchList 기능 ( Sql문 추가 )   
+	=> sql , include Tag 활용 
+	=> 조건문 형식을 일원화 : and "searchType 별 조건문" )     -->
+	<sql id="search">
+		<if test="keyword != null">
+			<bind name="keyVal" value="'%'+keyword+'%'"/>
+		</if>
+		<choose>
+			<when test="searchType=='i'.toString()">
+				and id LIKE #{keyVal} )
+			</when>
+			<when test="searchType=='a'.toString()">
+  				and name Like #{keyVal} )
+	  		</when>
+		  	<when test="searchType=='l'.toString()">
+		  		and lev Like #{keyVal} )
+		  	</when>
+		  	<when test="searchType=='r'.toString()">
+		  		and rid Like #{keyVal} )
+		  	</when>
+		  	<when test="searchType=='b'.toString()">
+		  		and birthd Like #{keyVal} )
+		  	</when>
+		  	<when test="searchType=='ia'.toString()">
+		  		and id Like #{keyVal}
+		  		or  name Like #{keyVal} )
+		  	</when>
+		  	<otherwise>)</otherwise>
+		</choose>
+	</sql>
+
+	<select id="searchRowsCount" resultType="int">
+		select count(*) from member where (id!='admin' 
+		<include refid="search"></include>	
+	</select>
+ 	<select id="searchList" resultType="vo.MemberVO">
+ 		select id, password, name, 
+ 		 	DECODE(lev,'A','관리자','B','나무','C','잎새','새싹') lev, 
+ 		 	birthd, point, weight, rid, uploadfile from 
+			(select m.*, ROW_NUMBER() OVER(order by id asc) rnum from member m where id!='admin' 
+			<include refid="search"></include>
+			where rnum between #{sno} and #{eno}
+	</select>
+ <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+ 	
+ 	<!-- ** PageList 1.
+ 	<select id="totalRowCount"  resultType="int" >
+ 		select count(*) from member where id != 'admin'
+ 	</select>-->
+ 	
+ 	<select id="totalRowCount"  resultType="int" >
+ 		<![CDATA[
+ 		select count(*) from member where id <> 'admin'
+ 		]]>
+ 	</select>
+ 	
+ 	<select id="pageList"  resultType="vo.MemberVO"  >
+ 		 select id, password, name, 
+ 		 	DECODE(lev,'A','관리자','B','나무','C','잎새','새싹') lev, 
+ 		 	birthd, point, weight, rid, uploadfile from 
+			(select m.*, ROW_NUMBER() OVER(order by id asc) rnum from member m where id!='admin')
+			where rnum between #{sno} and #{eno}
+ 	</select>
+ 	
+ 	<!-- ** CRUD 기본 ** -->
+ 	<select id="selectList" resultType="vo.MemberVO">
+ 		select id, password, name, 
+ 		 	DECODE(lev,'A','관리자','B','나무','C','잎새','새싹') lev, 
+ 		 	birthd, point, weight, rid, uploadfile  
+ 			from member where id != 'admin'
+ 	</select>
+ 
+ 	<select id="selectOne" resultType="vo.MemberVO">
+		select * from member where id = #{id}
+	</select>
+	<!-- #{id} : parameter 로 전달된 vo 의 id 라는 컬럼의 value 가 전달됨 -->
+
+	<insert id="insert">
+		insert into member values(
+		#{id},#{password},#{name},#{lev},#{birthd},#{point},#{weight},#{rid},#{uploadfile},1)
+	</insert>
+	
+	<update id="update">
+		update member set password=#{password}, name=#{name}, lev=#{lev}, birthd=#{birthd}
+		, point=#{point}, weight=#{weight}, rid=#{rid}, uploadfile=#{uploadfile} where id=#{id}
+	</update>
+	
+	<delete id="delete">
+		delete from member where id=#{id}	
+	</delete>
+ 
+</mapper>

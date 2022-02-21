@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="securityTest.SecurityMapper">
+
+<!-- *********************************************
+
+** interface 를 통해 ~Mapper 접근
+=> interface ~Mapper.java 의 패키지명과 화일명과  
+   ~Mapper.xml 의 패키지명, 화일명, namespace 값은 같아야됨.  
+
+** 스프링 시큐리티 적용 **
+
+** 아래 "read" 구문 
+=> resultMap 을 이용하여 1:N (member:member_auth) 자료 처리
+  ( 하나의 member 가 여러개의 authority(ROLE) 를 가질 수 있음 -> outerJoin )
+ 
+=> MemberVO 의 List<AuthVO> authList 에 ROLE목록을 담기위해 resultMap 으로 정의 
+
+=> authList 컬럼에는 member_auth Table 에서 ID에 해당하는 ROLE을 읽어와 담아주기 위해 
+   resultMap "authMap" 을 사용함.
+   
+=>  property : VO 의 컬럼명  
+-->
+<resultMap id="memberMap" type="vo.MemberVO">
+	<result property="id" column="id" />
+	<result property="password" column="password" />
+	<result property="name" column="name" />
+	<result property="lev" column="lev" />
+	<result property="birthd" column="birthd" />
+	<result property="point" column="point" />
+	<result property="weight" column="weight" />
+	<result property="rid" column="rid" />
+	<result property="uploadfile" column="uploadfile" />
+	<result property="enabled" column="enabled" />
+	<collection property="authList" resultMap="authMap"></collection>
+</resultMap>
+
+<resultMap id="authMap" type="vo.AuthVO" >
+	<result property="id" column="id" />
+	<result property="authority" column="authority" />
+</resultMap>
+
+<select id="read" resultMap="memberMap">
+		SELECT
+		m.id,password,name,lev,birthd,point,weight,rid,
+		uploadfile, enabled, authority
+		FROM
+		member m LEFT OUTER JOIN
+		member_auth a on m.id = a.id
+		WHERE m.id = #{id}
+</select>
+
+<!-- sqlplus 에 실행 Test
+	SELECT
+	m.id, name, lev, enabled, authority
+	FROM
+	member m LEFT OUTER JOIN
+	member_auth a on m.id = a.id
+	WHERE m.id = 'admin' ;
+-->
+
+
+
+
+<!--** read SQL Test  
+1) outer join
+select m.id,name, a.authority
+	from member m left outer join member_auth a
+	on m.id = a.id 
+	where m.id='admin' ; 
+	
+2) join	
+select m.id,name, a.authority
+	from member m, member_auth a
+	where  m.id = a.id and  m.id='admin' ;
+	
+=> id f.Key 관계이기 때문에 동일결과, outer Join 을 하지 않아도 되지만
+   혹시 해당 member가 없는 경우에도 출력 되도록 outer Join 으로 처리함.
+ 	
+-->
+</mapper>
+
+  

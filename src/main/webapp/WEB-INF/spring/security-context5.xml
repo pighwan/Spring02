@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:s="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd">
+	
+	<!-- *** 스프링 시큐리티 적용 5. 
+		** JDBC적용 3 : CustomUserDetailsService 이용하기
+		=> 원하는 객체를 인증과 권한 확인에 활용가능함. 
+		=> 객체의 다양한 컬럼들을 활용가능함
+		=> JSP 에서 이 객체를 사용가능함. (admin.jsp 수정후 확인)
+		** 1) 준비
+		=> UserDetailsService (i) 구현 클래스 CustomUserDetailsService 작성
+		=> AuthVO 작성, MemberVO 수정 -> vo
+		=> resources/securityTest 패키지 : SecurityMapper.xml, 
+		=> java/securityTest 패키지 : SecurityMapper.java (i) 작성 (반드시 Mapper와 동일한 패키지명)
+		=> CustomUser , CustomUserDetailsService 완성 -> securityTest (패키지명)
+		=> CustomUserDetailsService 빈등록
+		=> ~root.xml 에 Mybatis 관련설정
+		
+		** JSP에 적용하기
+		=> CustomUser 클래스에 @Getter 추가
+		=> HomeController 에 /authSuccess 메서드 추가
+		=> <s:form-login 에 -success-forward-url 적용
+		=> securityJsp/authSuccessF.jsp 작성
+	-->
+	
+	<!-- @Secured, @PreAuthorize, @PostAuthorize 사용허가 -->
+	<s:global-method-security secured-annotations="enabled" 
+							  pre-post-annotations="enabled" />
+	
+	<s:http use-expressions="true">
+		<!-- ** 로그인과 resources 는 접근 허용 (안해주면 ~.js 화일 인식안됨)  -->
+		<s:intercept-url pattern="/login*" access="permitAll" />
+		<s:intercept-url pattern="/resources/**" access="permitAll" />
+	
+		<s:intercept-url pattern="/m*" 
+		                 access="hasAuthority('ROLE_ADMIN')" />
+		<s:intercept-url pattern="/b*" 
+		                 access="hasRole('ROLE_USER')" />
+		<s:intercept-url pattern="/green*" access="isAuthenticated()" />
+		<s:intercept-url pattern="/**" access="permitAll"/>
+		
+		<s:access-denied-handler error-page="/accessError"/>
+		<s:form-login login-page="/ssLoginf"
+					  authentication-success-forward-url="/authSuccess" />
+				<!-- 인증 성공후 
+					=> url 로 처리
+						-> HomeController 에 매핑메서드 작성 ( 인증정보를 jsp 문서로 확인 )
+						-> 그러므로 아래 loginSuccess 빈 은 삭제해도됨
+					=> LoginSuccessHandler 로 처리 ( ~1.xml ~ 4.xml )
+						-> authentication-success-handler-ref="loginSuccess" 
+				-->
+		<s:logout logout-url="/ssLogout" 
+				  invalidate-session="true" 
+				  delete-cookies="JSESSIONID"
+				  logout-success-url="/home" />
+	</s:http>
+	<bean id="loginSuccess" 
+		class="securityTest.LoginSuccessHandler" lazy-init="true"/>
+	
+	<!--** 2) 인증/권한 설정
+		* Provider : 인증이나 권한 정보를 제공하는 존재
+		=> 속성 user-service-ref 로 CustomUserDetailsService 등록
+		   대신 <s:jdbc-user-service Tag는 필요없게 됨
+		-->
+	<s:authentication-manager>
+		<s:authentication-provider user-service-ref="customUserDetailsService">
+			<s:password-encoder ref="bCryptPasswordEncoder" />
+		</s:authentication-provider>
+	</s:authentication-manager>
+	<bean id="customUserDetailsService"
+		class="securityTest.CustomUserDetailsService"></bean>	
+	
+</beans>

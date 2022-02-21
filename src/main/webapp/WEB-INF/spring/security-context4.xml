@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:s="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd">
+	
+	<!-- *** 스프링 시큐리티 적용 4. 
+		** JDBC적용 2 : 기존 테이블 (member) 이용하기
+		** 1) 준비
+		=> member 인증 Table 생성
+		=> BCryptPasswordEncoder 설정 ( root ~.xml 에 있음 )
+	-->
+	<s:http use-expressions="true">
+		<!-- ** 로그인과 resources 는 접근 허용 (안해주면 ~.js 화일 인식안됨)  -->
+		<s:intercept-url pattern="/login*" access="permitAll" />
+		<s:intercept-url pattern="/resources/**" access="permitAll" />
+		
+		<s:intercept-url pattern="/m*" 
+		                   access="hasAuthority('ROLE_ADMIN')" />
+		<s:intercept-url pattern="/b*" 
+		                   access="hasRole('ROLE_USER')" />
+		<s:intercept-url pattern="/c*" access="isAuthenticated()" />
+		<s:intercept-url pattern="/**" access="permitAll"/>
+		
+		<s:access-denied-handler error-page="/accessError"/>
+		<s:form-login login-page="/ssLoginf"
+					authentication-success-handler-ref="loginSuccess" />
+		<s:logout logout-url="/ssLogout" 
+				  invalidate-session="true" 
+				  delete-cookies="JSESSIONID"
+				  logout-success-url="/home" />
+	</s:http>
+	<bean id="loginSuccess" 
+		class="securityTest.LoginSuccessHandler" lazy-init="true"/>
+	
+	<!--** 2) 인증/권한 설정
+		* Provider
+		=> <s:jdbc-user-service Tag 의 해당 속성으로 다음 등록 
+			- data-source-ref: "dataSource" 속성 등록
+		   	- users-by-username-query : 인증에 필요한 쿼리  	   
+		   	- authorities-by-username-query : 권한 확인에 필요한 쿼리 
+		-->
+	<s:authentication-manager>
+		<s:authentication-provider>
+			<s:jdbc-user-service 
+				data-source-ref="dataSource"
+				users-by-username-query="select id, password, enabled
+					from member where id=?"
+				authorities-by-username-query="select id, authority
+					from member_auth where id=?" 
+			/>
+			<s:password-encoder ref="bCryptPasswordEncoder" />
+		</s:authentication-provider>
+	</s:authentication-manager>
+	
+</beans>

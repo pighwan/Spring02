@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mapperInterface.BoardMapper">
+
+
+<!-- ** Member Check List : 반복문 <foreach .. Test  --> 
+   <select id="checkList" resultType="vo.BoardVO">
+   		select * from board where id in 
+   		<foreach collection="check" item="it" open="(" close=")" separator=",">
+   			#{it}
+   		</foreach>
+   		order by root desc, step asc
+   </select>
+
+<!-- ** Ajax id_BoardList -->
+	<select id="aidBList" resultType="vo.BoardVO">
+		select * from board where id=#{id} 
+		order by root desc, step asc
+	</select>
+
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+	<sql id="search">
+		<if test="keyword != null">
+			<bind name="keyVal" value="'%'+keyword+'%'"/>
+		</if>
+		<choose>
+			<when test="searchType=='t'.toString()">
+				and title LIKE #{keyVal} )
+			</when>
+			<when test="searchType=='c'.toString()">
+  				and content Like #{keyVal} )
+	  		</when>
+		  	<when test="searchType=='i'.toString()">
+		  		and id Like #{keyVal} )
+		  	</when>
+		  	<when test="searchType=='tc'.toString()">
+		  		and title Like #{keyVal} 
+		  		or content Like #{keyVal} )
+		  	</when>
+		  	<when test="searchType=='ti'.toString()">
+		  		and title Like #{keyVal} 
+		  		or id Like #{keyVal} )
+		  	</when>
+		  	<when test="searchType=='tci'.toString()">
+		  		and title Like #{keyVal}
+		  		or content Like #{keyVal} 
+		  		or id Like #{keyVal} )
+		  	</when>
+		  	<otherwise>)</otherwise>
+		</choose>
+	</sql>
+
+	<select id="searchRowsCount" resultType="int">
+		select count(*) from board where ( seq>0 
+		<include refid="search"></include>	
+	</select>
+ 	<select id="searchList" resultType="vo.BoardVO">
+ 		select seq,title,id,regdate,cnt,root,step,indent from 
+			(select b.*,ROW_NUMBER() OVER(order by root desc, step asc) rnum from board b 
+			where seq>0 
+			<include refid="search"></include>
+			where rnum between #{sno} and #{eno}
+	</select>
+
+<!-- ** 답글입력 ~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->	
+	<update id="stepUpdate">
+		update board set step=step+1 where root=#{root} and step>=#{step}
+	</update>
+	
+	<insert id="replyInsert">
+		<selectKey keyProperty="seq" resultType="int" order="BEFORE">
+			select nvl(max(seq),0)+1 from board
+		</selectKey>
+		insert into board values (
+			#{seq},
+			#{title},#{id},#{content},SYSDATE,0,#{root},#{step},#{indent})
+	</insert>  
+
+<!-- ** PageList ~~~~~~~~~~~~~~~~~~~~~~-->
+	<select id="totalRowCount" resultType="int">
+		select count(*) from board
+	</select>
+	
+	<select id="pageList" resultType="vo.BoardVO">
+		select seq,title,id,regdate,cnt,root,step,indent from 
+		(select b.* , ROW_NUMBER() OVER(order by root desc, step asc) rnum from board b) 
+		where rnum between #{sno} and #{eno}
+	</select>
+
+	<select id="selectList" resultType="vo.BoardVO">
+		select seq,title,id,regdate,cnt,root,step,indent from 
+		board order by root desc, step asc
+	</select>
+	
+	<select id="selectOne" resultType="vo.BoardVO">
+		select * from board where seq = #{seq}
+	</select>
+	
+	<!-- ** 조회수증가 -->
+	<update id="countUp">
+		update board set cnt=cnt+1 where seq=#{seq}
+	</update>
+	<!-- 원글입력 -->
+	<insert id="insert">
+		<selectKey keyProperty="seq" resultType="int" order="BEFORE">
+			select nvl(max(seq),0)+1 from board
+		</selectKey>
+		insert into board values ( 
+			#{seq},#{title},#{id},#{content},SYSDATE,0,
+			#{seq},0,0)
+	</insert>
+	
+	<update id="update">
+		update board set title=#{title}, content=#{content} where seq=#{seq}
+	</update>
+	
+	<delete id="delete">
+		DELETE from board
+		<if test="seq==root">where root=#{seq}</if> 
+		<!-- 원글삭제 : 동일한 root를 가진 글들은 모두 삭제 -->
+		<if test="seq!=root">where seq=#{seq}</if> 
+		<!-- 답글삭제 -->
+	</delete>
+
+</mapper>

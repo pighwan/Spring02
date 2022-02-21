@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Spring02
+Bundle-SymbolicName: Spring02
+Bundle-Version: 1.0.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-15
+Automatic-Module-Name: Spring02
+Export-Package: com.ncs.green,
+ criTest,
+ mapperInterface,
+ service,
+ service_OLD,
+ util,
+ util_OLD,
+ vo
+Require-Bundle: org.junit,
+ org.junit.jupiter.api

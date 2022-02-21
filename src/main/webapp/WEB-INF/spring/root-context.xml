@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- Root Context: defines shared resources visible to all other web components -->
+	
+	<!-- JUnit Spring Test -->
+	<bean class = "util_OLD.MemberDAO" lazy-init="true"/>
+	<bean class = "vo.MemberVO" lazy-init="true"/>
+	
+	<!--스프링시큐리티 라이브러리 BcryptPasswordEncoder -->
+	<bean id="bCryptPasswordEncoder" 
+		class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+		
+	<!--스프링시큐리티 Test1. 
+		=> JDBC Connection : DispatcherServlet 보다 앞서서 적용되므로 
+	-->
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver"/>
+		<property name="url" value="jdbc:oracle:thin:@127.0.0.1:1521:xe"/>
+		<property name="username" value="system"/>
+		<property name="password" value="oracle"/>
+	</bean>		
+		
+	<!-- *** Spring Security Mybatis (interface 사용) 설정
+		=> security-context5.xml 사용시 필요함
+		=> mybatis-spring:scan 
+		   dao필요 없이 interface ~Mapper.java를 사용해서 경로 맞춰주는 설정 
+		=> sqlSessionFactory : dataSource 설정만 하면됨 
+		   (servlet-context.xml은 주석처리)	-->  
+	   
+		<!-- <mybatis-spring:scan base-package="securityTest"/>   -->
+	   
+		<bean id="sqlSessionFactory"
+		   class="org.mybatis.spring.SqlSessionFactoryBean">
+		   <property name="dataSource" ref="dataSource"></property>
+		   <property name="mapperLocations" value = "classpath:/mappers/**/*Mapper.xml" />
+		</bean>
+		
+		<!-- JUnit Mybatis SqlSession Test 위해 mapperLocations 추가함 -->
+		  
+		<!-- Argument Resolver
+		  => 사용자가 컨트롤러의 메서드 인자값으로 임의의 값을 전달하려할때 사용됨 
+		     HomeController 의 ssdetail 메서드의 매개변수 Principal 위해 필요함.
+		      
+		 <mvc:annotation-driven>
+		   <mvc:argument-resolvers>
+		      <bean class="org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver" />
+		   </mvc:argument-resolvers>
+		</mvc:annotation-driven>  
+	    -->
+</beans>

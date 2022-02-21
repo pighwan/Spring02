@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:s="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd">
+	
+<!-- *** 스프링 시큐리티 적용 2. 
+	** form-login
+		=> 커스텀 로그인Page 적용 : 로그인폼에서 id 와 password 를 전송하면, 로그인 인증 처리를 한다.
+	** logout : 로그아웃 처리
+	
+	Test3. 커스텀 로그인Page 사용하기 
+		=> login-page 에 등록하는 uri는 반드시 Get방식 접근이어야함. 
+		=> 주의할점은 이 로그인 요청은 모두 접근 가능해야 한다. 
+		   (loginf 요청은 form 뜨는것만 확인-> login 실행시 Controller로 넘어감) 
+		=> <s:form-login login-page="/ssLoginf"/> 
+			-> views/ssLoginf.jsp , HomeController 에 매핑메서드 작성 
+			-> loginSuccess 핸들러 작성 
+	
+	Test4. 로그인 성공처리하기 
+		=> authentication-success-handler-ref="loginSuccess" 속성에 적용
+			-> LoginSuccessHandler 클래스 작성후 빈등록 ( Package : securityTest ) 
+		=> 실제 로그인으로 넘어가지 않도록 Test용 ssLoginf 사용  
+		
+	Test5. 로그아웃 
+		=> 로그아웃을 담당할 요청명 등록
+		=> 로그아웃 요청이 들어오면 로그아웃 속성 처리-->		
+	
+	<s:http use-expressions="true">
+		<!-- ** 로그인과 resources 는 접근 허용 (안해주면 ~.js 화일 인식안됨)  -->
+		<s:intercept-url pattern="/login*" access="permitAll" />
+		<s:intercept-url pattern="/resources/**" access="permitAll" />
+	
+		<s:intercept-url pattern="/m*" 
+		                   access="hasAuthority('ROLE_ADMIN')" />
+		<s:intercept-url pattern="/b*" 
+		                   access="hasRole('ROLE_USER')" />
+		<s:intercept-url pattern="/green*" access="isAuthenticated()" />
+		<s:intercept-url pattern="/**" access="permitAll"/>
+		
+		<s:access-denied-handler error-page="/accessError"/>
+		<!-- 직접 AccessDeniedHandler 인터페이스를 구현해서 클래스를 작성할수도 있음.
+			 교재 628~630p 참고 -->	
+			 
+		<s:form-login login-page="/ssLoginf"
+					authentication-success-handler-ref="loginSuccess" />
+					
+		<!-- logout-url="/ssLogout" : "ssLogout" 요청을 받아 처리함  -->		
+		<s:logout logout-url="/ssLogout" 
+				  invalidate-session="true" 
+				  delete-cookies="JSESSIONID" 
+				  logout-success-url="/home" /> 
+		<!-- 	logout-success-url -> 지정하지 않으면 Login Form 실행    
+				요청명 "/ssLoginf" , "/ssLogout" 는 HomeController 에 매핑메서드 작성  -->		  
+	</s:http>
+	<bean id="loginSuccess" 
+			class="securityTest.LoginSuccessHandler" lazy-init="true"/>
+	
+	<!-- ** 인증과 권한 설정 -->
+	<s:authentication-manager>
+		<s:authentication-provider>
+			<s:user-service>
+				<s:user name="admin" password="{noop}1111!" 
+				          authorities="ROLE_ADMIN,ROLE_USER" />
+				<s:user name="banana" password="{noop}2222!" 
+				          authorities="ROLE_USER" />
+				<s:user name="green" password="{noop}3333!"  
+						  authorities="ROLE_TEST"/>          
+			</s:user-service>
+		</s:authentication-provider>
+	</s:authentication-manager>
+	
+</beans>

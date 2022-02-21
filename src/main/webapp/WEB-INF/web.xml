@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee; https://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+	<!-- ... /ns/javaee; https://ja.... 사이에 ; 넣어주면 오류 사라짐  -->
+	
+	<!-- The definition of the Root Spring Container shared by all Servlets and Filters -->
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>/WEB-INF/spring/root-context.xml</param-value>
+					 <!-- /WEB-INF/spring/security-context5.xml -->
+				<!-- 스프링 시큐리티 적용 설정화일 추가 1~5 까지 순차적으로 적용 Test -->
+	</context-param>
+	
+	<!-- Creates the Spring Container shared by all Servlets and Filters -->
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+
+	<!-- Processes application requests 
+	  ** DispatcherServlet 계층도 **
+		 DispatcherServlet -> FrameworkServlet -> HttpServletBean 
+						   -> HttpServlet -> GenericServlet -> Object   -->
+	<servlet>
+		<servlet-name>appServlet</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>/WEB-INF/spring/appServlet/servlet-context.xml</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+		
+	<servlet-mapping>
+		<servlet-name>appServlet</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+
+	<!-- 스프링 시큐리티 Filter 적용   
+	** DelegatingFilterProxy (Delegating : 대표자, 위임자) 
+		=> 모든 URL(/*) 요청을 해당 필터에서 먼저 가로채 보안이 적용되도록 하는 서블릿 필터
+		=> 직접 보안 처리를 하는것은 아니지만, 보안 적용을 위한 시작점으로,
+		   스프링 시큐리티가 생성하는 FilterChainProxy 객체에 필터처리를 위임하고,
+		   이 FilterChainProxy 객체는 다시 여러 필터를 체인 형식으로 가지고 있는 
+		   SecurityFilterChain 에 처리를 위임함
+		=> filter-name 은 springSecurityFilterChain 이어야만 한다.
+	
+	<filter>
+		<filter-name>springSecurityFilterChain</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>springSecurityFilterChain</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	-->
+	<!-- 한글처리 필터 -->
+	<filter>
+		<filter-name>characterEncoding</filter-name>
+		<filter-class>org.springframework.web.filter.CharacterEncodingFilter
+		</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>UTF-8</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>characterEncoding</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	
+	<!-- Exception Test
+		=> 스프링의 "exceptionResolver" 설정을하면 우선적용되므로  
+	       500은 전달되지 않음, 그러나 404는 전달됨	
+	    => Spring Security Test 시에는 막아놓고 한다.   
+	<error-page>
+		<error-code>404</error-code>
+	  	<location>/WEB-INF/views/errorPage/exception_404.jsp</location>
+	</error-page>
+	<error-page>
+	  	<error-code>500</error-code>
+	  	<location>/WEB-INF/views/errorPage/exception_500.jsp</location>
+	</error-page>
+	-->
+</web-app>
